@@ -4,6 +4,7 @@ import math
 from utils import Utils
 from SingleStageExecution import SingleStageExecution
 from SingleStageDecode import SingleStageDecode
+from FiveStageExecution import FiveStageExecution
 
 
 MemSize = 1000 # memory size, in reality, the memory size should be 2^32, but for this lab, for the space resaon, we keep it as this large number, but the memory is still 32-bit addressable.
@@ -92,6 +93,7 @@ class Core(object):
         self.ext_imem = imem
         self.ext_dmem = dmem
         self.takeBranch = False
+        self.instruction_count = 0
 
 class SingleStageCore(Core):
     def __init__(self, ioDir, imem, dmem):
@@ -110,6 +112,7 @@ class SingleStageCore(Core):
             self.halted = True
         else: 
             self.SingleStageExecution.perform_operation(decodedInst,self.myRF,self.ext_dmem,self.takeBranch,self.state)
+            self.instruction_count += 1
             
         self.myRF.outputRF(self.cycle) # dump RF
         self.printState(self.state, self.cycle) # print states after executing cycle 0, cycle 1, cycle 2 ... 
@@ -132,35 +135,81 @@ class FiveStageCore(Core):
     def __init__(self, ioDir, imem, dmem):
         super(FiveStageCore, self).__init__(ioDir + "/FS_", imem, dmem)
         self.opFilePath = os.path.join(ioDir, "StateResult_FS.txt")
+        self.FiveStageExecution = FiveStageExecution()
 
     def step(self):
         # Your implementation
+        if self.state.IF["nop"] and self.state.ID["nop"] and self.state.EX["nop"] and self.state.MEM["nop"] and self.state.WB["nop"]:
+            self.halted = True
+
+        
         # --------------------- WB stage ---------------------
         
-        
+        if not self.state.WB["nop"]:
+            
+            self.FiveStageExecution.WB(self.state, self.myRF)
+            if self.state.MEM["nop"]:
+                self.state.WB["nop"] = True
+            self.instruction_count += 1
+        else:
+            if not self.state.MEM["nop"]:
+                self.state.WB["nop"] = False
         
         # --------------------- MEM stage --------------------
-        
+        if not self.state.MEM["nop"]:
+            
+            self.FiveStageExecution.Mem(self.state, self.ext_dmem)
+            if self.state.EX["nop"]:
+                self.state.MEM["nop"] = True
+            self.instruction_count += 1
+        else:
+            if not self.state.EX["nop"]:
+                self.state.MEM["nop"] = False
         
         
         # --------------------- EX stage ---------------------
-        
+        if not self.state.EX["nop"]:
+            
+            self.FiveStageExecution.EX(self.state)
+            self.state.MEM["nop"] = False
+            if self.state.ID["nop"]:
+                self.state.EX["nop"] = True
+            self.instruction_count += 1
+        else:
+            if not self.state.ID["nop"]:
+                self.state.EX["nop"] = False
         
         
         # --------------------- ID stage ---------------------
-        
+        if not self.state.ID["nop"]:
+            
+            self.state.EX["nop"] = False
+            self.FiveStageExecution.ID(self.state, self.myRF)
+            if self.state.IF["nop"]:
+                self.state.ID["nop"] = True
+            self.instruction_count += 1
+        else:
+            if not self.state.IF["nop"]:
+                self.state.ID["nop"] = False
         
         
         # --------------------- IF stage ---------------------
-        
-        self.halted = True
-        if self.state.IF["nop"] and self.state.ID["nop"] and self.state.EX["nop"] and self.state.MEM["nop"] and self.state.WB["nop"]:
-            self.halted = True
+        if not self.state.IF["nop"]:
+            if self.state.ID["nop"] or (self.state.EX["nop"] and self.state.ID["is_hazard"]):
+                pass
+            else:
+                
+                self.FiveStageExecution.IF(self.state,self.ext_imem)
+                self.instruction_count += 1
+                if not self.state.IF["nop"]: 
+                    self.state.ID["nop"] = False
         
         self.myRF.outputRF(self.cycle) # dump RF
-        self.printState(self.nextState, self.cycle) # print states after executing cycle 0, cycle 1, cycle 2 ... 
+        self.printState(self.state, self.cycle) # print states after executing cycle 0, cycle 1, cycle 2 ... 
         
-        self.state = self.nextState #The end of the cycle and updates the current state with the values calculated in this cycle
+        # self.state = self.nextState #The end of the cycle and updates the current state with the values calculated in this cycle
+        # if self.cycle>20: 
+        #     self.halted=True
         self.cycle += 1
 
     def printState(self, state, cycle):
@@ -176,22 +225,26 @@ class FiveStageCore(Core):
         with open(self.opFilePath, perm) as wf:
             wf.writelines(printstate)
 
-def printPerformanceMetrics(ioDir,CPI_SS, IPC_SS, cycles_SS):
+def printPerformanceMetrics(ioDir,CPI_SS, IPC_SS, cycles_SS, instruction_count_SS, CPI_FS, IPC_FS, cycles_FS, instruction_count_FS):
 
     
 
     opFilePath = ioDir + os.sep + "PerformanceMetrics_Result.txt"
     printstate_SS = ["-----------------------------Single Stage Core Performance Metrics-----------------------------\n"]
     printstate_SS.append("Number of cycles taken: " + str(cycles_SS) + "\n")
-    printstate_SS.append("Total Number of Instructions: " + str(math.ceil(cycles_SS/CPI_SS)) + "\n")
+    printstate_SS.append("Total Number of Instructions: " + str(instruction_count_SS) + "\n")
     printstate_SS.append("Cycles per instruction: " + str(CPI_SS) + "\n")
-    printstate_SS.append("Instructions per cycle: " + str(IPC_SS) + "\n")
+    printstate_SS.append("Instructions per cycle: " + str(IPC_SS) + "\n\n")
 
-    # for line in printstate_SS:
-    #     print(line)
-
+    printstate_FS = ["-----------------------------Five Stage Core Performance Metrics-----------------------------\n"]
+    printstate_FS.append("Number of cycles taken: " + str(cycles_FS) + "\n")
+    printstate_FS.append("Total Number of Instructions: " + str(instruction_count_FS) + "\n")
+    printstate_FS.append("Cycles per instruction: " + str(CPI_FS) + "\n")
+    printstate_FS.append("Instructions per cycle: " + str(IPC_FS) + "\n")
+    
     with open(opFilePath, 'w') as wf:
         wf.writelines(printstate_SS)
+        wf.writelines(printstate_FS)
 
 if __name__ == "__main__":
      
@@ -205,10 +258,11 @@ if __name__ == "__main__":
 
     imem = InsMem("Imem", ioDir)
     dmem_ss = DataMem("SS", ioDir)
-    # dmem_fs = DataMem("FS", ioDir)
+    dmem_fs = DataMem("FS", ioDir)
+
     
     ssCore = SingleStageCore(ioDir, imem, dmem_ss)
-    # fsCore = FiveStageCore(ioDir, imem, dmem_fs)
+    fsCore = FiveStageCore(ioDir, imem, dmem_fs)
 
     while True:
         if not ssCore.halted:
@@ -216,16 +270,20 @@ if __name__ == "__main__":
         if ssCore.halted:
             break
 
-    # while True:
-    #     if not fsCore.halted:
-    #         fsCore.step()
+    while True:
+        if not fsCore.halted:
+            fsCore.step()
 
-    #     if fsCore.halted:
-    #         break
+        if fsCore.halted:
+            break
     
     # dump SS and FS data mem.
     dmem_ss.outputDataMem()
+    dmem_fs.outputDataMem()
 
     IPC_SS = round((ssCore.cycle - 1) / ssCore.cycle,6)
     CPI_SS = round(1/IPC_SS,5)
-    printPerformanceMetrics(ioDir,CPI_SS,IPC_SS,ssCore.cycle)
+
+    IPC_FS = round((ssCore.cycle - 1) / fsCore.cycle,6)
+    CPI_FS = round(1/IPC_FS,5)
+    printPerformanceMetrics(ioDir, CPI_SS, IPC_SS, ssCore.cycle, ssCore.instruction_count-1, CPI_FS, IPC_FS, fsCore.cycle, fsCore.instruction_count-1)
