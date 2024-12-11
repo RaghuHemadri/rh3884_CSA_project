@@ -1,3 +1,6 @@
 project.code-workspace
 testCases/
 __pycache__/
+__MACOSX/
+input/
+output/

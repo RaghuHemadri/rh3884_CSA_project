@@ -235,7 +235,7 @@ def printPerformanceMetrics(ioDir,CPI_SS, IPC_SS, cycles_SS, instruction_count_S
     printstate_FS.append("#Cycles -> " + str(cycles_FS) + "\n")
     printstate_FS.append("#Instructions -> " + str(instruction_count_SS) + "\n")
     printstate_FS.append("CPI -> " + str(CPI_FS) + "\n")
-    printstate_FS.append("IPC -> " + str(IPC_FS) + "\n")
+    printstate_FS.append("IPC -> " + str(IPC_FS))
     
     with open(opFilePath, 'w') as wf:
         wf.writelines(printstate_SS)
