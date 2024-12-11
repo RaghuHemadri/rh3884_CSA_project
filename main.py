@@ -150,7 +150,6 @@ class FiveStageCore(Core):
             self.FiveStageExecution.WB(self.state, self.myRF)
             if self.state.MEM["nop"]:
                 self.state.WB["nop"] = True
-            self.instruction_count += 1
         else:
             if not self.state.MEM["nop"]:
                 self.state.WB["nop"] = False
@@ -161,7 +160,6 @@ class FiveStageCore(Core):
             self.FiveStageExecution.Mem(self.state, self.ext_dmem)
             if self.state.EX["nop"]:
                 self.state.MEM["nop"] = True
-            self.instruction_count += 1
         else:
             if not self.state.EX["nop"]:
                 self.state.MEM["nop"] = False
@@ -174,7 +172,6 @@ class FiveStageCore(Core):
             self.state.MEM["nop"] = False
             if self.state.ID["nop"]:
                 self.state.EX["nop"] = True
-            self.instruction_count += 1
         else:
             if not self.state.ID["nop"]:
                 self.state.EX["nop"] = False
@@ -187,7 +184,6 @@ class FiveStageCore(Core):
             self.FiveStageExecution.ID(self.state, self.myRF)
             if self.state.IF["nop"]:
                 self.state.ID["nop"] = True
-            self.instruction_count += 1
         else:
             if not self.state.IF["nop"]:
                 self.state.ID["nop"] = False
@@ -200,7 +196,6 @@ class FiveStageCore(Core):
             else:
                 
                 self.FiveStageExecution.IF(self.state,self.ext_imem)
-                self.instruction_count += 1
                 if not self.state.IF["nop"]: 
                     self.state.ID["nop"] = False
         
@@ -225,22 +220,22 @@ class FiveStageCore(Core):
         with open(self.opFilePath, perm) as wf:
             wf.writelines(printstate)
 
-def printPerformanceMetrics(ioDir,CPI_SS, IPC_SS, cycles_SS, instruction_count_SS, CPI_FS, IPC_FS, cycles_FS, instruction_count_FS):
+def printPerformanceMetrics(ioDir,CPI_SS, IPC_SS, cycles_SS, instruction_count_SS, CPI_FS, IPC_FS, cycles_FS):
 
     
 
     opFilePath = ioDir + os.sep + "PerformanceMetrics_Result.txt"
-    printstate_SS = ["-----------------------------Single Stage Core Performance Metrics-----------------------------\n"]
-    printstate_SS.append("Number of cycles taken: " + str(cycles_SS) + "\n")
-    printstate_SS.append("Total Number of Instructions: " + str(instruction_count_SS) + "\n")
-    printstate_SS.append("Cycles per instruction: " + str(CPI_SS) + "\n")
-    printstate_SS.append("Instructions per cycle: " + str(IPC_SS) + "\n\n")
+    printstate_SS = ["Performance of Single Stage:\n"]
+    printstate_SS.append("#Cycles -> " + str(cycles_SS) + "\n")
+    printstate_SS.append("#Instructions -> " + str(instruction_count_SS) + "\n")
+    printstate_SS.append("CPI -> " + str(CPI_SS) + "\n")
+    printstate_SS.append("IPC -> " + str(IPC_SS) + "\n\n")
 
-    printstate_FS = ["-----------------------------Five Stage Core Performance Metrics-----------------------------\n"]
-    printstate_FS.append("Number of cycles taken: " + str(cycles_FS) + "\n")
-    printstate_FS.append("Total Number of Instructions: " + str(instruction_count_FS) + "\n")
-    printstate_FS.append("Cycles per instruction: " + str(CPI_FS) + "\n")
-    printstate_FS.append("Instructions per cycle: " + str(IPC_FS) + "\n")
+    printstate_FS = ["Performance of Five Stage:\n"]
+    printstate_FS.append("#Cycles -> " + str(cycles_FS) + "\n")
+    printstate_FS.append("#Instructions -> " + str(instruction_count_SS) + "\n")
+    printstate_FS.append("CPI -> " + str(CPI_FS) + "\n")
+    printstate_FS.append("IPC -> " + str(IPC_FS) + "\n")
     
     with open(opFilePath, 'w') as wf:
         wf.writelines(printstate_SS)
@@ -286,4 +281,4 @@ if __name__ == "__main__":
 
     IPC_FS = round((ssCore.cycle - 1) / fsCore.cycle,6)
     CPI_FS = round(1/IPC_FS,5)
-    printPerformanceMetrics(ioDir, CPI_SS, IPC_SS, ssCore.cycle, ssCore.instruction_count-1, CPI_FS, IPC_FS, fsCore.cycle, fsCore.instruction_count-1)
+    printPerformanceMetrics(ioDir, CPI_SS, IPC_SS, ssCore.cycle, ssCore.instruction_count-1, CPI_FS, IPC_FS, fsCore.cycle)
