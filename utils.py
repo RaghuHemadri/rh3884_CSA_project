@@ -2,7 +2,7 @@ class Utils(object):
     @staticmethod
     def decimal_to_binary(n, n_bits=32):
         """Convert a decimal number to binary with a fixed number of bits."""
-        binary_n = bin(n & (2**n_bits - 1))[2:]
+        binary_n = bin(int(n) & (2**n_bits - 1))[2:]
         return "0" * (n_bits - len(binary_n)) + binary_n
 
     @staticmethod

@@ -221,10 +221,7 @@ class FiveStageCore(Core):
             wf.writelines(printstate)
 
 def printPerformanceMetrics(ioDir,CPI_SS, IPC_SS, cycles_SS, instruction_count_SS, CPI_FS, IPC_FS, cycles_FS):
-
-    
-
-    opFilePath = ioDir + os.sep + "PerformanceMetrics_Result.txt"
+    opFilePath = ioDir + os.sep + "PerformanceMetrics.txt"
     printstate_SS = ["Performance of Single Stage:\n"]
     printstate_SS.append("#Cycles -> " + str(cycles_SS) + "\n")
     printstate_SS.append("#Instructions -> " + str(instruction_count_SS) + "\n")
